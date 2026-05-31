@@ -19,6 +19,8 @@ VR（ジャイロ見回し）表示します。端末のGPSで現在地を取得
   開花球の半径＝開花直径/2[m]。遠近投影により **見かけの画角（大きさ）が自動的に正しく** なる。
 - **真北整合**: iOS `webkitCompassHeading` / Android `deviceorientationabsolute` から方位を取得し、
   花火ワールドを一定角回転させて北を実際の北へ合わせる（look-controls がジャイロ見回しを担当）。
+- **音の遅延**: 開花の光から `距離 / 音速(340m/s)` だけ遅れて「ドン」と鳴る現象を再現
+  （WebAudioで合成、音源ファイル不要。号数で音量・音程、距離で減衰）。
 
 ## 内蔵データ（号数 → 打上高度 / 開花直径）
 | 号数 | 打上高度 | 開花直径 |
@@ -49,6 +51,7 @@ python3 -m http.server 8080
 ```
 index.html            A-Frameシーン＋起動UI/HUD
 js/festival-data.js   隅田川データ・号数スペック表・打上プログラム
+js/audio.js           開花音の合成(WebAudio)・距離遅延/減衰
 js/geo.js             距離/方位(Haversine)・3D座標変換・GPS取得
 js/fireworks.js       花火描画コンポーネント(hanabi-show): 上昇→実寸開花→重力/残光
 js/north-align.js     真北整合(north-align): コンパス/手動較正

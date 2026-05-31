@@ -149,6 +149,11 @@ AFRAME.registerComponent('hanabi-show', {
     const points = new THREE.Points(geo, mat);
     this.root.add(points);
 
+    // 開花音（距離に応じて遅れて届く）
+    if (window.HanabiAudio) {
+      window.HanabiAudio.boom({ size, distance: (rocket.venue && rocket.venue.distance) || 500 });
+    }
+
     const life = type === 'willow' ? 5.0 : (type === 'chrysanthemum' ? 3.6 : 2.6);
     const drag = type === 'willow' ? 0.55 : (type === 'chrysanthemum' ? 0.9 : 1.2);
 

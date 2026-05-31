@@ -31,6 +31,9 @@
     $('startBtn').disabled = true;
     $('startBtn').textContent = '準備中…';
 
+    // 0) 音声を初期化（ユーザー操作中に行う必要がある）
+    if (window.HanabiAudio) window.HanabiAudio.init();
+
     // 1) 方位センサー許可（iOS 13+）
     await requestOrientationPermission();
 
