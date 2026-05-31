@@ -1,60 +1,123 @@
 /*
- * 隅田川花火大会の実データ
+ * 花火大会の実データ（複数大会・選択式）
  *
- * - 打上場所の緯度経度（実在の座標）
- * - 号数 → 打上高度・開花直径（メートル）の仕様テーブル
- * - 打上プログラム（号数・発数・タイミングのシーケンス）
+ * - 各大会の打上場所（緯度経度）と会場ごとの号数構成
+ * - 号数 → 打上高度・開花直径（メートル）の仕様テーブル（全大会共通）
  *
- * 出典:
- *   号数仕様: ホームメイト・リサーチ / なにわ淀川花火大会 / 全国花火データベース
- *   開催情報: 中央区(令和7年 第48回) / ウォーカープラス
+ * 注: 打上場所の緯度経度は公開情報（河川敷・公園・球場等の会場）からの概算。
+ *     号数構成・規模は各大会の特徴に基づく代表値（演出のため一部簡略化）。
+ *
+ * 出典: ホームメイト・リサーチ／全国花火データベース（号数仕様）、
+ *       ウォーカープラス花火大会／各大会公式・東京観光公式 GO TOKYO、
+ *       立川まつり国営昭和記念公園花火大会公式（最大一尺五寸玉=15号）、
+ *       Wikipedia「東京ディズニーリゾートの花火の一覧」（打上はトムソーヤ島付近）。
  */
 
 /* 号数別スペック表（メートル）
- * burstHeight: 開花する高度の代表値 [m]
- * burstDiameter: 開花直径の代表値 [m]
- * shellDiameter: 玉の外径 [cm]（参考表示用）
+ * burstHeight: 開花高度の代表値 [m] / burstDiameter: 開花直径の代表値 [m]
+ * shellDiameter: 玉の外径 [cm]（参考）
  */
 const SHELL_SPECS = {
-  2:  { label: '2号',          burstHeight: 55,  burstDiameter: 45,  shellDiameter: 5.6 },
-  3:  { label: '3号',          burstHeight: 125, burstDiameter: 65,  shellDiameter: 9.0 },
-  4:  { label: '4号',          burstHeight: 160, burstDiameter: 130, shellDiameter: 12.0 },
-  5:  { label: '5号',          burstHeight: 190, burstDiameter: 170, shellDiameter: 15.0 },
-  7:  { label: '7号',          burstHeight: 250, burstDiameter: 220, shellDiameter: 21.0 },
-  10: { label: '10号(尺玉)',   burstHeight: 330, burstDiameter: 320, shellDiameter: 30.0 },
-  20: { label: '20号(二尺玉)', burstHeight: 470, burstDiameter: 510, shellDiameter: 60.0 },
-  30: { label: '30号(三尺玉)', burstHeight: 600, burstDiameter: 620, shellDiameter: 90.0 },
+  2:  { label: '2号',            burstHeight: 55,  burstDiameter: 45,  shellDiameter: 5.6 },
+  3:  { label: '3号',            burstHeight: 125, burstDiameter: 65,  shellDiameter: 9.0 },
+  4:  { label: '4号',            burstHeight: 160, burstDiameter: 130, shellDiameter: 12.0 },
+  5:  { label: '5号',            burstHeight: 190, burstDiameter: 170, shellDiameter: 15.0 },
+  7:  { label: '7号',            burstHeight: 250, burstDiameter: 220, shellDiameter: 21.0 },
+  10: { label: '10号(尺玉)',     burstHeight: 330, burstDiameter: 320, shellDiameter: 30.0 },
+  15: { label: '15号(尺五寸玉)', burstHeight: 410, burstDiameter: 440, shellDiameter: 45.0 },
+  20: { label: '20号(二尺玉)',   burstHeight: 470, burstDiameter: 510, shellDiameter: 60.0 },
+  30: { label: '30号(三尺玉)',   burstHeight: 600, burstDiameter: 620, shellDiameter: 90.0 },
 };
 
-/* 隅田川花火大会
- * 主会場(第二会場相当)の打上場所は実測の緯度経度を使用。
- * 第一会場(桜橋〜言問橋)は概算座標。
- */
-const FESTIVAL = {
-  name: '隅田川花火大会',
-  subtitle: '第48回 (2025/7/26 19:00〜)',
-  venues: [
-    {
-      id: 'venue1',
-      name: '第一会場（桜橋〜言問橋）',
-      lat: 35.71750,
-      lng: 139.80350,
-      // この会場で主に上がる号数の構成（重み付き）
-      shellMix: [3, 3, 4, 5, 5, 10],
-    },
-    {
-      id: 'venue2',
-      name: '第二会場（駒形橋〜厩橋）',
-      lat: 35.715685,
-      lng: 139.80504,
-      shellMix: [3, 4, 5, 5, 10, 10, 20],
-    },
-  ],
-  // フィナーレ用の大玉構成
-  finaleMix: [10, 10, 20, 30],
-};
+/* 大会リスト（先頭が初期選択） */
+const FESTIVALS = [
+  {
+    id: 'sumida',
+    name: '隅田川花火大会',
+    subtitle: '約2万発・尺玉中心（7月下旬）',
+    venues: [
+      { id: 'v1', name: '第一会場（桜橋〜言問橋）',  lat: 35.71750, lng: 139.80350, shellMix: [3, 3, 4, 5, 5, 10] },
+      { id: 'v2', name: '第二会場（駒形橋〜厩橋）',  lat: 35.715685, lng: 139.80504, shellMix: [3, 4, 5, 5, 10, 10, 20] },
+    ],
+    finaleMix: [10, 10, 20, 30],
+  },
+  {
+    id: 'edogawa',
+    name: '江戸川区花火大会',
+    subtitle: '約1.4万発・5秒1000発の大会（8月上旬）',
+    venues: [
+      { id: 'v1', name: '江戸川河川敷（篠崎公園先）', lat: 35.70850, lng: 139.90250, shellMix: [3, 3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'adachi',
+    name: '足立の花火',
+    subtitle: '荒川河川敷・約1.5万発（5〜7月）',
+    venues: [
+      { id: 'v1', name: '荒川河川敷（千住新橋〜西新井橋）', lat: 35.77600, lng: 139.79650, shellMix: [3, 4, 5, 5, 10, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'itabashi',
+    name: 'いたばし花火大会',
+    subtitle: '荒川戸田橋・都内最大級の尺五寸玉（8月）',
+    venues: [
+      { id: 'v1', name: '荒川河川敷（戸田橋上流）', lat: 35.79400, lng: 139.67800, shellMix: [4, 5, 5, 10, 10, 15] },
+    ],
+    finaleMix: [10, 15, 20],
+  },
+  {
+    id: 'tamagawa',
+    name: '世田谷区たまがわ花火大会',
+    subtitle: '二子玉川・多摩川河川敷（10月）',
+    venues: [
+      { id: 'v1', name: '多摩川河川敷（二子橋付近）', lat: 35.61250, lng: 139.62700, shellMix: [3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'jingu',
+    name: '神宮外苑花火大会',
+    subtitle: '都心・神宮第二球場付近（8月）',
+    venues: [
+      { id: 'v1', name: '明治神宮外苑（神宮球場付近）', lat: 35.67550, lng: 139.71650, shellMix: [3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [10, 10, 10],
+  },
+  {
+    id: 'tachikawa',
+    name: '立川まつり 昭和記念公園花火大会',
+    subtitle: '都内最大の一尺五寸玉・約5千発（7月）',
+    venues: [
+      { id: 'v1', name: '国営昭和記念公園 みんなの原っぱ', lat: 35.70550, lng: 139.40900, shellMix: [4, 5, 5, 10, 10, 15] },
+    ],
+    finaleMix: [10, 15, 15],
+  },
+  {
+    id: 'fuchu',
+    name: '東京競馬場花火',
+    subtitle: 'JRA東京競馬場・音楽連動（7月）',
+    venues: [
+      { id: 'v1', name: 'JRA東京競馬場', lat: 35.66650, lng: 139.48500, shellMix: [4, 5, 5, 10, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'disney',
+    name: '東京ディズニーランド花火（Disney Light the Night）',
+    subtitle: '園内・低空の小型花火（ほぼ毎晩・天候次第）',
+    venues: [
+      // 打上はトムソーヤ島付近のバックヤード。空港・住宅地に近く小型・低空。
+      { id: 'v1', name: 'トムソーヤ島付近（園内北側）', lat: 35.63400, lng: 139.88100, shellMix: [2, 3, 3, 4] },
+    ],
+    finaleMix: [3, 4, 4, 5],
+  },
+];
 
 if (typeof window !== 'undefined') {
   window.SHELL_SPECS = SHELL_SPECS;
-  window.FESTIVAL = FESTIVAL;
+  window.FESTIVALS = FESTIVALS;
+  window.FESTIVAL = FESTIVALS[0]; // 後方互換
 }
