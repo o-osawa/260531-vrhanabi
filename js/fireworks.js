@@ -54,10 +54,28 @@ AFRAME.registerComponent('hanabi-show', {
     this.finale = false;
   },
 
-  // 会場の地上ワールド座標を設定して開始
-  setVenues(venues) {
+  // 会場の地上ワールド座標とフィナーレ構成を設定して開始（大会切替時も呼ぶ）
+  setVenues(venues, finaleMix) {
+    this.clear();
     this.venues = venues;
+    this.finaleMix = (finaleMix && finaleMix.length) ? finaleMix : [10];
+    this.launchTimer = 0;
+    this.nextLaunchIn = 0.6;
+    this.phaseTimer = 0;
+    this.finale = false;
     this.running = true;
+  },
+
+  // 進行中の火種・開花をすべて除去
+  clear() {
+    (this.rockets || []).forEach((rk) => {
+      this.root.remove(rk.points); rk.geo.dispose(); rk.points.material.dispose();
+    });
+    (this.bursts || []).forEach((b) => {
+      this.root.remove(b.points); b.geo.dispose(); b.mat.dispose();
+    });
+    this.rockets = [];
+    this.bursts = [];
   },
 
   // 火種(rocket)を打ち上げる
@@ -179,7 +197,7 @@ AFRAME.registerComponent('hanabi-show', {
       for (let k = 0; k < burstCount; k++) {
         const venue = pick(this.venues);
         let size;
-        if (this.finale) size = pick(window.FESTIVAL.finaleMix);
+        if (this.finale) size = pick(this.finaleMix);
         else size = pick(venue.shellMix);
         this.launchShell(venue, size);
       }
