@@ -4,12 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>VR花火ビューア｜隅田川花火大会</title>
+  <title>AR花火ビューア｜東京の花火大会</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #05060f; overflow: hidden;
       font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #fff; }
-    a-scene { position: fixed; inset: 0; }
+    /* AR背景：端末カメラ映像を全画面に敷き、その上にA-Frameの透過キャンバスを重ねる */
+    #camera { position: fixed; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 0; background: #05060f; }
+    a-scene { position: fixed; inset: 0; z-index: 1; }
+    a-scene .a-canvas { background: transparent !important; }
 
     /* 起動オーバーレイ */
     #overlay { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
@@ -45,17 +49,21 @@
   </style>
 </head>
 <body>
+  <!-- AR背景：端末の背面カメラ映像 -->
+  <video id="camera" autoplay playsinline muted></video>
+
   <!-- 起動オーバーレイ -->
   <div id="overlay">
-    <div id="title">東京の花火を VR で</div>
+    <div id="title">東京の花火を AR で</div>
     <label id="selectLabel" for="festivalSelect">花火大会を選ぶ</label>
     <select id="festivalSelect"></select>
     <div id="subtitle"></div>
     <button id="startBtn">花火を見る</button>
     <div id="hint">
-      ［花火を見る］を押すと、現在地(GPS)と方位センサーの使用許可を求めます。<br>
-      スマホを空にかざして傾けると、実際の方角・距離・大きさで花火が見えます。<br>
-      方角がずれる場合は、主会場の方を向いて［方角を較正］を押してください。
+      ［花火を見る］を押すと、<b>カメラ</b>・現在地(GPS)・方位センサーの使用許可を求めます。<br>
+      カメラ映像の上に、実際の方角・距離・大きさで花火が重なって見えます。<br>
+      画面の <b>↓</b>（その上に大会名・距離）が花火の方向。<b>←/→</b> や「後ろ」は花火のある向きへの案内です。<br>
+      方角がずれる場合は、花火の方を向いて［方角を較正］を押してください。
     </div>
   </div>
 
@@ -68,25 +76,19 @@
   </div>
   <button id="calibrateBtn">方角を較正</button>
 
-  <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z） -->
-  <a-scene renderer="colorManagement: true; antialias: true" vr-mode-ui="enabled: false"
-           background="color: #05060f">
-    <!-- 視点：原点・目線高さ1.6m。look-controls がモバイルでジャイロ見回し＋PCでドラッグ -->
+  <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z / AR=透過背景） -->
+  <a-scene renderer="colorManagement: true; antialias: true; alpha: true"
+           vr-mode-ui="enabled: false">
+    <!-- 視点：原点・目線高さ1.6m。look-controls がモバイルでジャイロ見回し＝カメラ姿勢に追従 -->
     <a-entity id="rig" position="0 1.6 0">
       <a-entity camera="far: 20000; fov: 70"
                 look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: true"></a-entity>
     </a-entity>
 
-    <!-- 夜空は a-scene の background(clear color)で表現。
-         a-sky(球)を置くと半径外(=遠方)の花火を遮蔽してしまうため使わない。 -->
-    <!-- 地平線（暗い地面）。カメラ far(20000)内に収める -->
-    <a-circle radius="18000" rotation="-90 0 0" position="0 0 0"
-              material="color: #0a0c16; shader: flat; side: double"></a-circle>
-    <!-- 環境光（花火以外は暗く） -->
-    <a-entity light="type: ambient; color: #20243a; intensity: 0.6"></a-entity>
+    <!-- AR: 背景は端末カメラ映像（透過キャンバス）。地面/空は置かず実景を活かす。 -->
 
-    <!-- 花火ワールド：北整合＋花火ショー。会場はこの中に実方位で配置される -->
-    <a-entity id="world" north-align hanabi-show></a-entity>
+    <!-- 花火ワールド：北整合＋花火ショー＋方向ガイド。会場はこの中に実方位で配置される -->
+    <a-entity id="world" north-align hanabi-show direction-guide></a-entity>
   </a-scene>
 
   <script src="js/festival-data.js"></script>
@@ -94,6 +96,7 @@
   <script src="js/geo.js"></script>
   <script src="js/fireworks.js"></script>
   <script src="js/north-align.js"></script>
+  <script src="js/guide.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

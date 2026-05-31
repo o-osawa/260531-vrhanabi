@@ -47,7 +47,8 @@
     // 0) 音声初期化（ユーザー操作中に行う必要がある）
     if (window.HanabiAudio) window.HanabiAudio.init();
 
-    // 1) 方位センサー許可（iOS 13+）
+    // 1) カメラ（AR背景）と方位センサー許可（iOS 13+）
+    await startCamera();
     await requestOrientationPermission();
 
     // 2) 現在地（GPS）
@@ -68,6 +69,20 @@
     document.body.classList.add('running');
   }
 
+  // 背面カメラ映像をAR背景として取得
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, audio: false,
+      });
+      const v = $('camera');
+      v.srcObject = stream;
+      await v.play();
+    } catch (e) {
+      setStatus('カメラを使用できないため、AR背景なしで表示します。', true);
+    }
+  }
+
   function requestOrientationPermission() {
     return new Promise((resolve) => {
       const D = window.DeviceOrientationEvent;
@@ -86,6 +101,7 @@
     const fest = FESTIVALS[index];
     const worldVenues = [];
     const rows = [];
+    let primaryDist = 0;
 
     fest.venues.forEach((v, idx) => {
       const dist = Geo.haversine(viewer.lat, viewer.lng, v.lat, v.lng);
@@ -93,7 +109,7 @@
       const maxSize = Math.max.apply(null, v.shellMix);
       const elev = Geo.elevationAngle(dist, window.SHELL_SPECS[maxSize].burstHeight);
       const ground = Geo.geoToWorld(brg, dist, 0);
-      if (idx === 0) primaryBearing = brg;
+      if (idx === 0) { primaryBearing = brg; primaryDist = dist; }
 
       worldVenues.push({
         pos: new THREE.Vector3(ground.x, ground.y, ground.z),
@@ -111,6 +127,13 @@
     if ($('festivalSwitch').value !== String(index)) $('festivalSwitch').value = String(index);
 
     $('world').components['hanabi-show'].setVenues(worldVenues, fest.finaleMix);
+
+    // 方向ガイド（花火の方角・大会名・距離）を更新
+    $('world').components['direction-guide'].set({
+      name: fest.name,
+      distanceText: '距離 ' + fmtDist(primaryDist),
+      bearingDeg: primaryBearing,
+    });
   }
 
   function onCalibrate() {
