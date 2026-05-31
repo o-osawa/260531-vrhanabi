@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>VR花火ビューア｜隅田川花火大会</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #05060f; overflow: hidden;
+      font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #fff; }
+    a-scene { position: fixed; inset: 0; }
+
+    /* 起動オーバーレイ */
+    #overlay { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center; padding: 24px;
+      background: radial-gradient(circle at 50% 30%, #16203a 0%, #05060f 70%); }
+    body.running #overlay { display: none; }
+    #title { font-size: 26px; font-weight: 700; letter-spacing: .04em; margin-bottom: 4px; }
+    #subtitle { font-size: 14px; opacity: .8; margin-bottom: 28px; }
+    #startBtn { font-size: 18px; padding: 14px 40px; border: none; border-radius: 999px;
+      background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; font-weight: 700;
+      box-shadow: 0 6px 24px rgba(255,120,120,.35); }
+    #startBtn:disabled { opacity: .7; }
+    #hint { margin-top: 22px; font-size: 12.5px; line-height: 1.7; opacity: .75; max-width: 320px; }
+
+    /* 実行中HUD */
+    #hud { position: fixed; left: 0; right: 0; top: 0; z-index: 9; padding: 14px 16px;
+      background: linear-gradient(#000a, #0000); display: none; pointer-events: none;
+      font-size: 12.5px; line-height: 1.6; }
+    body.running #hud { display: block; }
+    #hud .venue { margin-top: 4px; opacity: .92; }
+    #status { margin-top: 6px; font-size: 11.5px; opacity: .7; }
+    #status.warn { color: #ffd24a; opacity: 1; }
+    #calibrateBtn { position: fixed; right: 14px; bottom: 18px; z-index: 9; display: none;
+      pointer-events: auto; font-size: 13px; padding: 10px 16px; border-radius: 999px;
+      border: 1px solid #ffffff44; background: #ffffff1a; color: #fff; backdrop-filter: blur(6px); }
+    body.running #calibrateBtn { display: block; }
+  </style>
+</head>
+<body>
+  <!-- 起動オーバーレイ -->
+  <div id="overlay">
+    <div id="title">隅田川花火大会</div>
+    <div id="subtitle"></div>
+    <button id="startBtn">花火を見る</button>
+    <div id="hint">
+      ［花火を見る］を押すと、現在地(GPS)と方位センサーの使用許可を求めます。<br>
+      スマホを空にかざして傾けると、実際の方角・距離・大きさで花火が見えます。<br>
+      方角がずれる場合は、主会場の方を向いて［方角を較正］を押してください。
+    </div>
+  </div>
+
+  <!-- 実行中HUD -->
+  <div id="hud">
+    <div><b>隅田川花火大会</b>｜あなたの位置からの見え方</div>
+    <div id="venues"></div>
+    <div id="status"></div>
+  </div>
+  <button id="calibrateBtn">方角を較正</button>
+
+  <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z） -->
+  <a-scene renderer="colorManagement: true; antialias: true" vr-mode-ui="enabled: false"
+           background="color: #05060f">
+    <!-- 視点：原点・目線高さ1.6m。look-controls がモバイルでジャイロ見回し＋PCでドラッグ -->
+    <a-entity id="rig" position="0 1.6 0">
+      <a-entity camera="far: 20000; fov: 70"
+                look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: true"></a-entity>
+    </a-entity>
+
+    <!-- 夜空は a-scene の background(clear color)で表現。
+         a-sky(球)を置くと半径外(=遠方)の花火を遮蔽してしまうため使わない。 -->
+    <!-- 地平線（暗い地面）。カメラ far(20000)内に収める -->
+    <a-circle radius="18000" rotation="-90 0 0" position="0 0 0"
+              material="color: #0a0c16; shader: flat; side: double"></a-circle>
+    <!-- 環境光（花火以外は暗く） -->
+    <a-entity light="type: ambient; color: #20243a; intensity: 0.6"></a-entity>
+
+    <!-- 花火ワールド：北整合＋花火ショー。会場はこの中に実方位で配置される -->
+    <a-entity id="world" north-align hanabi-show></a-entity>
+  </a-scene>
+
+  <script src="js/festival-data.js"></script>
+  <script src="js/geo.js"></script>
+  <script src="js/fireworks.js"></script>
+  <script src="js/north-align.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
