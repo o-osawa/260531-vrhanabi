@@ -55,6 +55,7 @@ js/north-align.js     真北整合(north-align): コンパス/手動較正
 js/app.js             制御: 許可要求→会場配置→開始→HUD更新
 ```
 
-## デプロイ設定（初回のみ）
-リポジトリの **Settings → Pages → Source** を **「GitHub Actions」** に設定すると、
-対象ブランチへの push で自動公開されます。
+## デプロイ
+対象ブランチ（`main` / 作業ブランチ）への push で GitHub Actions が自動公開します。
+ワークフローが Pages を自動有効化（`configure-pages` の `enablement: true`）するため、
+**Settings の手動切替は不要** です。公開URLは Actions 実行ログ／Settings → Pages で確認できます。

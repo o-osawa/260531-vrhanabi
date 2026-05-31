@@ -32,6 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          # 初回実行時にPagesを自動で有効化(Source=GitHub Actions)。
+          # これにより Settings の手動切替が不要になる。
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
