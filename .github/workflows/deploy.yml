@@ -6,11 +6,13 @@ name: Deploy to GitHub Pages
 # 事前にリポジトリ設定が必要:
 #   Settings → Pages → Build and deployment → Source: "GitHub Actions"
 
+# 公開は main からのみ行う。
+# github-pages 環境はデフォルトブランチ(main)以外からのデプロイを拒否するため、
+# 作業ブランチを push トリガーに含めると毎回「保護ルールで拒否」され失敗扱いになる。
 on:
   push:
     branches:
       - main
-      - claude/vr-fireworks-viewer-N7cAk
   workflow_dispatch:
 
 permissions:
