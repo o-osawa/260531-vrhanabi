@@ -72,6 +72,13 @@
 
     selectFestival(currentIndex);
 
+    // 表示開始直後にレンダラ/カメラのアスペクト比を実画面へ同期（横潰れ防止）
+    fixAspect();
+    window.addEventListener('resize', fixAspect);
+    window.addEventListener('orientationchange', () => setTimeout(fixAspect, 300));
+    // iOSのアドレスバー開閉などで遅れて確定するサイズにも追従
+    [120, 400, 1000].forEach((t) => setTimeout(fixAspect, t));
+
     if (sensorsAllowed) {
       $('world').components['north-align'].enableCompass();   // 方角合わせ
       document.querySelector('[camera]').components['gyro-look'].enable(); // ジャイロ見回し
@@ -80,6 +87,20 @@
     }
 
     startFacingLoop();
+  }
+
+  // レンダラとカメラのアスペクト比を実ビューポートに合わせる（花火の横潰れを防ぐ）
+  function fixAspect() {
+    const scene = document.querySelector('a-scene');
+    if (!scene) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    const cam = scene.camera;
+    if (cam && cam.isPerspectiveCamera) {
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
+    }
+    if (scene.renderer) scene.renderer.setSize(w, h);
+    if (typeof scene.resize === 'function') scene.resize();
   }
 
   async function startCamera() {
