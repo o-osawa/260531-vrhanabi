@@ -1,11 +1,12 @@
 /* global THREE, Geo, FESTIVALS */
 /*
  * アプリ制御:
+ *  - 起動時に日本語の許可ダイアログ(#permModal)で、カメラ・モーション/方位・GPSの
+ *    使用を説明して許可を得る
  *  - 大会の選択（起動オーバーレイ＋実行中HUDの両方で切替可能）
- *  - 開始ボタンのユーザー操作でセンサー(方位)許可・GPS・音声を初期化
  *  - 現在地→選択大会の各会場の距離・方位・仰角を計算し、ワールドに配置
- *  - hanabi-show 開始/切替 / north-align のコンパス整合 / HUD更新
- *  - GPS不可時は推定視点へフォールバック＋手動較正を案内
+ *  - hanabi-show 開始/切替 / north-align のコンパス整合 / gyro-look の見回し / HUD更新
+ *  - 操作はジャイロのみ（スワイプ操作・手動較正は廃止）
  */
 (function () {
   // GPS取得不可時のフォールバック視点（東京駅付近）
@@ -18,20 +19,21 @@
     return full[Math.round(deg / 45) % 8] + `(${Math.round(deg)}°)`;
   };
 
-  let viewer = null;        // {lat, lng}
-  let primaryBearing = 0;   // 選択大会・主会場の方位（手動較正用）
+  let viewer = null;
+  let primaryBearing = 0;
   let currentIndex = 0;
+  let sensorsAllowed = false;
 
   function init() {
-    // 両方のセレクトに大会一覧を流し込む
     [$('festivalSelect'), $('festivalSwitch')].forEach((sel) => {
       if (!sel) return;
       sel.innerHTML = FESTIVALS.map((f, i) => `<option value="${i}">${f.name}</option>`).join('');
     });
     $('festivalSelect').addEventListener('change', (e) => updateOverlaySubtitle(+e.target.value));
     $('festivalSwitch').addEventListener('change', (e) => selectFestival(+e.target.value));
-    $('startBtn').addEventListener('click', onStart, { once: true });
-    $('calibrateBtn').addEventListener('click', onCalibrate);
+    $('startBtn').addEventListener('click', openPermModal, { once: true });
+    $('permAllow').addEventListener('click', () => startApp(true));
+    $('permDeny').addEventListener('click', () => startApp(false));
     updateOverlaySubtitle(0);
   }
 
@@ -39,37 +41,47 @@
     $('subtitle').textContent = FESTIVALS[i].subtitle;
   }
 
-  async function onStart() {
-    $('startBtn').disabled = true;
-    $('startBtn').textContent = '準備中…';
+  // 日本語の許可説明ダイアログを表示
+  function openPermModal() {
     currentIndex = +$('festivalSelect').value || 0;
+    $('permModal').classList.add('show');
+  }
 
-    // 0) 音声初期化（ユーザー操作中に行う必要がある）
+  // 許可結果を受けて起動。allow=false なら最小限（GPSのみ）で起動。
+  async function startApp(allow) {
+    $('permModal').classList.remove('show');
+    document.body.classList.add('running');
+
+    // 音声（ユーザー操作中に初期化）
     if (window.HanabiAudio) window.HanabiAudio.init();
 
-    // 1) カメラ（AR背景）と方位センサー許可（iOS 13+）
-    await startCamera();
-    await requestOrientationPermission();
+    if (allow) {
+      await startCamera();
+      await requestOrientationPermission();
+      sensorsAllowed = true;
+    }
 
-    // 2) 現在地（GPS）
+    // 現在地（GPS）
     try {
       viewer = await Geo.getCurrentPosition();
       setStatus(`現在地を取得しました（精度±${Math.round(viewer.accuracy)}m）`);
     } catch (e) {
       viewer = { lat: FALLBACK_VIEW.lat, lng: FALLBACK_VIEW.lng };
-      setStatus(`GPSを取得できないため${FALLBACK_VIEW.label}から表示します。［方角を較正］で調整できます。`, true);
+      setStatus(`GPSを取得できないため${FALLBACK_VIEW.label}から表示します。`, true);
     }
 
-    // 3) 選択大会を配置して開始
     selectFestival(currentIndex);
 
-    // 4) コンパス整合を開始
-    $('world').components['north-align'].enableCompass();
+    if (sensorsAllowed) {
+      $('world').components['north-align'].enableCompass();   // 方角合わせ
+      document.querySelector('[camera]').components['gyro-look'].enable(); // ジャイロ見回し
+    } else {
+      setStatus('センサー未許可のため、見回し・方角合わせは無効です。', true);
+    }
 
-    document.body.classList.add('running');
+    startFacingLoop();
   }
 
-  // 背面カメラ映像をAR背景として取得
   async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -94,7 +106,6 @@
     });
   }
 
-  // 大会を選択（初回・切替共通）。viewer が必要。
   function selectFestival(index) {
     if (!viewer) return;
     currentIndex = index;
@@ -127,8 +138,6 @@
     if ($('festivalSwitch').value !== String(index)) $('festivalSwitch').value = String(index);
 
     $('world').components['hanabi-show'].setVenues(worldVenues, fest.finaleMix);
-
-    // 方向ガイド（花火の方角・大会名・距離）を更新
     $('world').components['direction-guide'].set({
       name: fest.name,
       distanceText: '距離 ' + fmtDist(primaryDist),
@@ -136,9 +145,19 @@
     });
   }
 
-  function onCalibrate() {
-    $('world').components['north-align'].calibrateTo(primaryBearing);
-    setStatus('正面を主会場の方角に合わせました。');
+  // 方位表示（今向いている方角／花火の方角）を定期更新
+  function startFacingLoop() {
+    const el = $('facing');
+    setInterval(() => {
+      const na = $('world').components['north-align'];
+      const h = na ? na.heading : null;
+      const fire = `花火 ${compass8(primaryBearing)}`;
+      if (h == null) {
+        el.textContent = `🧭 方位センサー未取得 ｜ ${fire}`;
+      } else {
+        el.textContent = `🧭 向き ${compass8(h)} ｜ ${fire}`;
+      }
+    }, 200);
   }
 
   function setStatus(msg, warn) {
