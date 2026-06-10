@@ -9,7 +9,8 @@
  * 注: walkerplus 等のまとめサイトは直接取得不可のため、開催日・会場は各大会公式／自治体／
  *     Wikipedia 等の一次情報に基づく。打上場所の緯度経度は会場（河川敷・公園・港等）からの
  *     代表点で、数百m程度の誤差を含む概算。号数構成は各大会の特徴に基づく代表値。
- *     開催日は年により変動（直近開催回の告知日を採用、※は実施年を併記）。
+ *     開催日は2026年を基準（公式告知がある大会は確定日、未公表は近年実績からの
+ *     「（予定）」表記）。年により変動するため最新は各公式で要確認。
  *
  * 出典: 各大会公式・自治体（隅田川/江戸川区/足立区/いたばし/世田谷/立川/JRA/鴻巣市/
  *       境町/土浦市/横浜市）、東京観光公式 GO TOKYO、ウェザーニュース、Wikipedia、
@@ -75,8 +76,32 @@ const FESTIVALS = [
     finaleMix: [3, 4, 5],
   },
   {
+    id: 'katsushika', region: 'kanto', pref: '東京都', name: '葛飾納涼花火大会',
+    subtitle: '柴又・江戸川河川敷／至近で約1.5万発', date: '2026-07-28', dateLabel: '7月28日',
+    venues: [
+      { id: 'v1', name: '柴又野球場（江戸川河川敷）', lat: 35.75600, lng: 139.88200, shellMix: [3, 3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [5, 10, 10],
+  },
+  {
+    id: 'kita', region: 'kanto', pref: '東京都', name: '北区花火会',
+    subtitle: '荒川・岩淵水門／花火×ドローン×音楽 約1万発', date: '2026-09-26', dateLabel: '9月下旬（予定）',
+    venues: [
+      { id: 'v1', name: '荒川河川敷（岩淵水門・赤羽）', lat: 35.78350, lng: 139.72350, shellMix: [3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [5, 10, 10],
+  },
+  {
+    id: 'ota', region: 'kanto', pref: '東京都', name: '大田区 平和のつどい（平和祈念花火）',
+    subtitle: '多摩川河川敷・約4千発の集中打上', date: '2026-08-28', dateLabel: '8月28日',
+    venues: [
+      { id: 'v1', name: '多摩川河川敷（西六郷・六郷土手）', lat: 35.53450, lng: 139.70900, shellMix: [3, 4, 5, 5] },
+    ],
+    finaleMix: [5, 5, 10],
+  },
+  {
     id: 'adachi', region: 'kanto', pref: '東京都', name: '足立の花火',
-    subtitle: '約1.4万発・高密度（近年は5月開催）', date: '2025-05-31', dateLabel: '5月31日 ※2025',
+    subtitle: '約1.4万発・高密度（近年は5月開催）', date: '2026-05-30', dateLabel: '5月30日',
     venues: [
       { id: 'v1', name: '荒川河川敷（千住側・千住新橋〜西新井橋）', lat: 35.76250, lng: 139.79650, shellMix: [3, 4, 5, 5, 10, 10] },
     ],
@@ -84,7 +109,7 @@ const FESTIVALS = [
   },
   {
     id: 'itabashi', region: 'kanto', pref: '東京都', name: 'いたばし花火大会',
-    subtitle: '荒川戸田橋・都内最大級の尺五寸玉', date: '2025-08-02', dateLabel: '8月2日 ※2025',
+    subtitle: '荒川戸田橋・都内最大級の尺五寸玉', date: '2026-08-01', dateLabel: '8月上旬（予定）',
     venues: [
       { id: 'v1', name: '荒川河川敷（戸田橋緑地付近）', lat: 35.79450, lng: 139.67900, shellMix: [4, 5, 5, 10, 10, 15] },
     ],
@@ -92,7 +117,7 @@ const FESTIVALS = [
   },
   {
     id: 'tamagawa', region: 'kanto', pref: '東京都', name: '世田谷区たまがわ花火大会',
-    subtitle: '二子玉川・多摩川河川敷', date: '2025-10-04', dateLabel: '10月4日 ※2025',
+    subtitle: '二子玉川・多摩川河川敷', date: '2026-10-03', dateLabel: '10月上旬（予定）',
     venues: [
       { id: 'v1', name: '多摩川河川敷（二子橋付近）', lat: 35.61200, lng: 139.62650, shellMix: [3, 4, 5, 5, 10] },
     ],
@@ -100,7 +125,7 @@ const FESTIVALS = [
   },
   {
     id: 'jingu', region: 'kanto', pref: '東京都', name: '神宮外苑花火大会',
-    subtitle: '都心・神宮第二球場付近', date: '2025-08-16', dateLabel: '8月16日 ※2025',
+    subtitle: '都心・神宮第二球場付近', date: '2026-08-08', dateLabel: '8月8日',
     venues: [
       { id: 'v1', name: '明治神宮外苑（神宮球場付近）', lat: 35.67550, lng: 139.71650, shellMix: [3, 4, 5, 5, 10] },
     ],
@@ -108,7 +133,7 @@ const FESTIVALS = [
   },
   {
     id: 'tachikawa', region: 'kanto', pref: '東京都', name: '立川まつり 昭和記念公園花火大会',
-    subtitle: '都内最大の一尺五寸玉・約5千発', date: '2025-07-26', dateLabel: '7月26日 ※2025',
+    subtitle: '都内最大の一尺五寸玉・約5千発', date: '2026-07-25', dateLabel: '7月下旬（予定）',
     venues: [
       { id: 'v1', name: '国営昭和記念公園 みんなの原っぱ', lat: 35.70450, lng: 139.40700, shellMix: [4, 5, 5, 10, 10, 15] },
     ],
@@ -116,7 +141,7 @@ const FESTIVALS = [
   },
   {
     id: 'fuchu', region: 'kanto', pref: '東京都', name: '東京競馬場花火（花火と音楽の祭典）',
-    subtitle: 'JRA東京競馬場・音楽連動', date: '2025-07-02', dateLabel: '7月2日 ※2025',
+    subtitle: 'JRA東京競馬場・音楽連動', date: '2026-07-01', dateLabel: '7月1日',
     venues: [
       { id: 'v1', name: 'JRA東京競馬場', lat: 35.66650, lng: 139.48500, shellMix: [4, 5, 5, 10, 10] },
     ],
@@ -142,7 +167,7 @@ const FESTIVALS = [
   // ---- 茨城県 ----
   {
     id: 'tsuchiura', region: 'kanto', pref: '茨城県', name: '土浦全国花火競技大会',
-    subtitle: '日本三大花火・競技大会', date: '2025-11-01', dateLabel: '11月1日 ※2025',
+    subtitle: '日本三大花火・競技大会', date: '2026-11-07', dateLabel: '11月7日',
     venues: [
       { id: 'v1', name: '桜川畔（学園大橋付近）', lat: 36.07800, lng: 140.19600, shellMix: [5, 7, 10, 10] },
     ],
@@ -150,7 +175,7 @@ const FESTIVALS = [
   },
   {
     id: 'tonegawa', region: 'kanto', pref: '茨城県', name: '利根川大花火大会（境町）',
-    subtitle: '約3万発・国内最大級', date: '2025-09-13', dateLabel: '9月13日 ※2025',
+    subtitle: '約3万発・国内最大級', date: '2026-09-12', dateLabel: '9月中旬（予定）',
     venues: [
       { id: 'v1', name: '利根川河川敷（境町宮本町）', lat: 36.10700, lng: 139.79200, shellMix: [4, 5, 7, 10, 10] },
     ],
