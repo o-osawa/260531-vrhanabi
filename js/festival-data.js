@@ -100,6 +100,14 @@ const FESTIVALS = [
     finaleMix: [5, 5, 10],
   },
   {
+    id: 'tokyobay', region: 'kanto', pref: '東京都', name: '東京湾大華火祭',
+    subtitle: '晴海埠頭沖・11年ぶり復活／約1.2万発・尺五寸玉', date: '2026-10-24', dateLabel: '10月24日',
+    venues: [
+      { id: 'v1', name: '東京港・晴海埠頭沖（海上）', lat: 35.64200, lng: 139.78700, shellMix: [4, 5, 5, 10, 10, 15] },
+    ],
+    finaleMix: [10, 15, 20],
+  },
+  {
     id: 'adachi', region: 'kanto', pref: '東京都', name: '足立の花火',
     subtitle: '約1.4万発・高密度（近年は5月開催）', date: '2026-05-30', dateLabel: '5月30日',
     venues: [
@@ -109,7 +117,7 @@ const FESTIVALS = [
   },
   {
     id: 'itabashi', region: 'kanto', pref: '東京都', name: 'いたばし花火大会',
-    subtitle: '荒川戸田橋・都内最大級の尺五寸玉', date: '2026-08-01', dateLabel: '8月上旬（予定）',
+    subtitle: '荒川戸田橋・都内最大級の尺五寸玉', date: '2026-08-01', dateLabel: '8月1日',
     venues: [
       { id: 'v1', name: '荒川河川敷（戸田橋緑地付近）', lat: 35.79450, lng: 139.67900, shellMix: [4, 5, 5, 10, 10, 15] },
     ],
