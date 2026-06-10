@@ -94,15 +94,20 @@
   }
 
   function renderList() {
-    const html = sortedFestivals().map(({ f, i, dist }) => `
+    const html = sortedFestivals().map(({ f, i, dist }) => {
+      const badge = f.kind === 'event'
+        ? '<span class="badge ev">イベント</span>'
+        : '<span class="badge">花火大会</span>';
+      return `
       <div class="card">
         <div class="meta">
-          <div class="nm">${f.name}</div>
+          <div class="nm">${badge}${f.name}</div>
           <div class="dt">📅 ${f.dateLabel}　📍 ${f.pref}・${fmtDist(dist)}</div>
           <div class="ds">${f.subtitle}</div>
         </div>
         <button class="go" data-i="${i}">ARで見る</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     $('listScroll').innerHTML = html;
     $('listScroll').querySelectorAll('.go').forEach((b) => {
       b.addEventListener('click', () => openPermModal(+b.dataset.i));
@@ -145,8 +150,9 @@
       if (f.region !== regionId) return;
       const v = f.venues[0];
       const m = L.marker([v.lat, v.lng]).addTo(map);
+      const kindLabel = f.kind === 'event' ? '🎆 イベント花火' : '🎇 花火大会';
       const html = `<div class="pop"><div class="nm">${f.name}</div>` +
-        `<div class="dt">📅 ${f.dateLabel}　📍 ${f.pref}</div>` +
+        `<div class="dt">${kindLabel}<br>📅 ${f.dateLabel}　📍 ${f.pref}</div>` +
         `<button class="go" data-i="${i}">ARで見る</button></div>`;
       m.bindPopup(html);
       m.on('popupopen', (e) => {
