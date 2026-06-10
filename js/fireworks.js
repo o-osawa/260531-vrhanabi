@@ -140,14 +140,14 @@ AFRAME.registerComponent('hanabi-show', {
     const colorObjs = palette.map((h) => new THREE.Color(h));
 
     for (let i = 0; i < count; i++) {
-      // 球面一様サンプリング
+      // 球面一様サンプリング（全ての型で丸く開く）
       const u = Math.random() * 2 - 1;
       const phi = Math.random() * Math.PI * 2;
       const s = Math.sqrt(1 - u * u);
-      let dx = s * Math.cos(phi), dy = u, dz = s * Math.sin(phi);
-      // 牡丹/菊は球状、柳は下向き偏重で少し潰す
+      const dx = s * Math.cos(phi), dy = u, dz = s * Math.sin(phi);
+      // 速度は球状一様。柳は遅め＋長寿命にして「枝垂れ」は重力で自然に作る
       let speed = (radius / expandTime) * (0.85 + Math.random() * 0.3);
-      if (type === 'willow') { dy = dy * 0.6 - 0.3; speed *= 0.7; }
+      if (type === 'willow') speed *= 0.8;
 
       positions[i * 3] = base.x; positions[i * 3 + 1] = base.y; positions[i * 3 + 2] = base.z;
       vels[i * 3] = dx * speed; vels[i * 3 + 1] = dy * speed; vels[i * 3 + 2] = dz * speed;

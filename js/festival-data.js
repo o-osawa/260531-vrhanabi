@@ -54,7 +54,7 @@ const FESTIVALS = [
     id: 'edogawa', region: 'kanto', pref: '東京都', name: '江戸川区花火大会',
     subtitle: '約1.4万発・5秒1000発', date: '2026-08-01', dateLabel: '8月1日',
     venues: [
-      { id: 'v1', name: '江戸川河川敷（都立篠崎公園先）', lat: 35.70900, lng: 139.90300, shellMix: [3, 3, 4, 5, 5, 10] },
+      { id: 'v1', name: '江戸川河川敷（都立篠崎公園先・市川市民納涼花火と同会場）', lat: 35.71868, lng: 139.90205, shellMix: [3, 3, 4, 5, 5, 10] },
     ],
     finaleMix: [10, 10, 20],
   },
@@ -146,6 +146,47 @@ const FESTIVALS = [
     subtitle: '横浜港・週末の短時間花火', date: null, dateLabel: '週末中心',
     venues: [
       { id: 'v1', name: '新港ふ頭沖（みなとみらい）', lat: 35.45400, lng: 139.64300, shellMix: [3, 4, 5, 5] },
+    ],
+    finaleMix: [5, 5, 10],
+  },
+
+  // ============================================================
+  // 花火大会ではないが「花火が上がるイベント」（2026年）
+  // kind:'event' で区別。リストにバッジ表示。
+  // ============================================================
+  {
+    id: 'starisland', region: 'kanto', pref: '東京都', kind: 'event',
+    name: 'STAR ISLAND 2026', subtitle: '花火×ドローン×音楽の未来型ショー・約1.2万発',
+    date: '2026-05-23', dateLabel: '5月23日',
+    venues: [
+      { id: 'v1', name: 'お台場海浜公園（沖合）', lat: 35.62950, lng: 139.77400, shellMix: [3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'makuhari', region: 'kanto', pref: '千葉県', kind: 'event',
+    name: '幕張ビーチ花火フェスタ', subtitle: '花火×音楽・国内最大級 約2万発',
+    date: '2026-08-01', dateLabel: '8月1日',
+    venues: [
+      { id: 'v1', name: '幕張海浜公園（幕張の浜）', lat: 35.64350, lng: 140.03300, shellMix: [4, 5, 5, 10, 10] },
+    ],
+    finaleMix: [10, 10, 20],
+  },
+  {
+    id: 'tdl_show', region: 'kanto', pref: '千葉県', kind: 'event',
+    name: '東京ディズニーランド 夜のショー花火', subtitle: 'パーク上空の小型花火（実施日のみ）',
+    date: null, dateLabel: '実施日のみ',
+    venues: [
+      { id: 'v1', name: 'シンデレラ城後方（園内）', lat: 35.63270, lng: 139.88130, shellMix: [2, 3, 3, 4] },
+    ],
+    finaleMix: [3, 4, 4],
+  },
+  {
+    id: 'yomiuri', region: 'kanto', pref: '東京都', kind: 'event',
+    name: 'よみうりランド 花火（ナイトショー）', subtitle: '遊園地の音楽連動花火（夏季の指定日）',
+    date: null, dateLabel: '夏季の指定日',
+    venues: [
+      { id: 'v1', name: 'よみうりランド園内', lat: 35.62650, lng: 139.51650, shellMix: [3, 4, 5, 5] },
     ],
     finaleMix: [5, 5, 10],
   },
