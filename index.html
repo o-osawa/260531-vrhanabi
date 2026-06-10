@@ -6,6 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>AR花火ビューア｜東京の花火大会</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #05060f; overflow: hidden;
       font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #fff; }
@@ -15,46 +17,69 @@
     a-scene { position: fixed; inset: 0; z-index: 1; }
     a-scene .a-canvas { background: transparent !important; }
 
-    /* 起動オーバーレイ */
-    #overlay { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; text-align: center; padding: 24px;
-      background: radial-gradient(circle at 50% 30%, #16203a 0%, #05060f 70%); }
-    body.running #overlay { display: none; }
-    #title { font-size: 26px; font-weight: 700; letter-spacing: .04em; margin-bottom: 4px; }
-    #subtitle { font-size: 14px; opacity: .8; margin-bottom: 28px; }
-    #startBtn { font-size: 18px; padding: 14px 40px; border: none; border-radius: 999px;
-      background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; font-weight: 700;
-      box-shadow: 0 6px 24px rgba(255,120,120,.35); }
-    #startBtn:disabled { opacity: .7; }
-    #hint { margin-top: 22px; font-size: 12.5px; line-height: 1.7; opacity: .75; max-width: 320px; }
-    #selectLabel { font-size: 13px; opacity: .85; margin-bottom: 6px; }
-    #festivalSelect { font-size: 16px; padding: 10px 14px; border-radius: 10px;
-      border: 1px solid #ffffff33; background: #0d1226; color: #fff; margin-bottom: 18px; max-width: 88vw; }
-    #switchRow { margin-top: 8px; pointer-events: auto; font-size: 12px; opacity: .9; }
-    #festivalSwitch { font-size: 12.5px; padding: 5px 8px; border-radius: 8px;
-      border: 1px solid #ffffff33; background: #0d1226cc; color: #fff; max-width: 72vw; }
+    /* 画面（リスト／マップ）共通 */
+    .screen { position: fixed; inset: 0; z-index: 12; display: none; flex-direction: column;
+      background: radial-gradient(circle at 50% 18%, #16203a 0%, #05060f 72%); }
+    .screen.show { display: flex; }
+    .screen header { padding: 16px 16px 10px; }
+    .screen h1 { font-size: 20px; margin: 0 0 2px; font-weight: 700; letter-spacing: .03em; }
+    .screen .sub { font-size: 12px; opacity: .7; }
+
+    /* リスト画面 */
+    #listScroll { flex: 1; overflow-y: auto; padding: 4px 14px 90px; -webkit-overflow-scrolling: touch; }
+    .sortbar { display: flex; gap: 8px; padding: 6px 14px 10px; align-items: center; }
+    .sortbar .lbl { font-size: 12px; opacity: .7; margin-right: 2px; }
+    .seg { display: inline-flex; border: 1px solid #ffffff33; border-radius: 999px; overflow: hidden; }
+    .seg button { background: transparent; color: #fff; border: none; font-size: 13px; padding: 7px 16px; font-weight: 700; }
+    .seg button.active { background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; }
+    .card { display: flex; align-items: center; gap: 12px; background: #0d1430; border: 1px solid #ffffff1f;
+      border-radius: 14px; padding: 13px 14px; margin-bottom: 10px; }
+    .card .meta { flex: 1; min-width: 0; }
+    .card .nm { font-size: 15.5px; font-weight: 700; }
+    .card .dt { font-size: 12.5px; opacity: .85; margin-top: 3px; }
+    .card .ds { font-size: 12px; opacity: .7; margin-top: 2px; }
+    .card .go { flex: none; font-size: 13px; font-weight: 700; padding: 9px 14px; border-radius: 999px; border: none;
+      background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; white-space: nowrap; }
+
+    /* マップ画面 */
+    #map { flex: 1; width: 100%; background: #0a0e1c; }
+    .leaflet-popup-content { font: 13px/1.6 -apple-system, "Hiragino Kaku Gothic ProN", sans-serif; margin: 10px 12px; }
+    .pop .nm { font-weight: 700; font-size: 14px; }
+    .pop .dt { opacity: .8; margin: 2px 0 8px; }
+    .pop .go { font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 999px; border: none;
+      background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; }
+
+    /* 下部固定ボタンバー */
+    .bottombar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+      display: flex; gap: 10px; background: linear-gradient(#0000, #05060fcc 40%); }
+    .bottombar button { flex: 1; font-size: 15px; font-weight: 700; padding: 13px; border-radius: 12px;
+      border: 1px solid #ffffff33; background: #ffffff14; color: #fff; }
+    .bottombar button.primary { border: none; background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; }
 
     /* 実行中HUD */
     #hud { position: fixed; left: 0; right: 0; top: 0; z-index: 9; padding: 14px 16px;
-      background: linear-gradient(#000a, #0000); display: none; pointer-events: none;
-      font-size: 12.5px; line-height: 1.6; }
+      background: linear-gradient(#000a, #0000); display: none; pointer-events: none; font-size: 12.5px; line-height: 1.6; }
     body.running #hud { display: block; }
     #hud .venue { margin-top: 4px; opacity: .92; }
     #status { margin-top: 6px; font-size: 11.5px; opacity: .7; }
     #status.warn { color: #ffd24a; opacity: 1; }
+    #backToList { position: fixed; right: 14px; top: 12px; z-index: 9; display: none; pointer-events: auto;
+      font-size: 13px; font-weight: 700; padding: 9px 14px; border-radius: 999px; border: 1px solid #ffffff44;
+      background: #ffffff1a; color: #fff; backdrop-filter: blur(6px); }
+    body.running #backToList { display: block; }
 
     /* 方位表示（画面下中央） */
-    #facing { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 9;
-      display: none; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 700;
+    #facing { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 9; display: none;
+      padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 700;
       background: rgba(0,0,0,.5); border: 1px solid #ffffff33; white-space: nowrap; }
     body.running #facing { display: block; }
 
     /* 日本語の許可ダイアログ */
-    #permModal { position: fixed; inset: 0; z-index: 20; display: none;
-      align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.6); }
+    #permModal { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
+      padding: 24px; background: rgba(0,0,0,.6); }
     #permModal.show { display: flex; }
-    #permModal .card { background: #121a30; border: 1px solid #ffffff22; border-radius: 18px;
-      max-width: 360px; padding: 24px; text-align: left; box-shadow: 0 10px 40px #000a; }
+    #permModal .card2 { background: #121a30; border: 1px solid #ffffff22; border-radius: 18px; max-width: 360px;
+      padding: 24px; text-align: left; box-shadow: 0 10px 40px #000a; }
     #permModal h2 { font-size: 18px; margin: 0 0 12px; }
     #permModal p { font-size: 13.5px; line-height: 1.75; margin: 0 0 12px; opacity: .92; }
     #permModal .note { font-size: 12px; opacity: .7; }
@@ -68,23 +93,40 @@
   <!-- AR背景：端末の背面カメラ映像 -->
   <video id="camera" autoplay playsinline muted></video>
 
-  <!-- 起動オーバーレイ -->
-  <div id="overlay">
-    <div id="title">東京の花火を AR で</div>
-    <label id="selectLabel" for="festivalSelect">花火大会を選ぶ</label>
-    <select id="festivalSelect"></select>
-    <div id="subtitle"></div>
-    <button id="startBtn">花火を見る</button>
-    <div id="hint">
-      カメラ映像の上に、実際の方角・距離・大きさで花火が重なって見えます。<br>
-      画面の <b>↓</b>（その上に大会名・距離）が花火の方向。<b>←/→</b> や「後ろ」は花火のある向きへの案内です。<br>
-      スマホを傾けて、花火の方角へ向けてください（操作はジャイロのみ）。
+  <!-- リスト画面 -->
+  <div id="listScreen" class="screen show">
+    <header>
+      <h1>東京の花火大会</h1>
+      <div class="sub">大会を選んで AR で観賞。日付順・距離順で並べ替えできます。</div>
+    </header>
+    <div class="sortbar">
+      <span class="lbl">並び順</span>
+      <span class="seg">
+        <button id="sortDate" class="active">日付順</button>
+        <button id="sortDist">距離順</button>
+      </span>
+    </div>
+    <div id="listScroll"></div>
+    <div class="bottombar">
+      <button id="toMap" class="primary">🗺 マップを見る</button>
+    </div>
+  </div>
+
+  <!-- マップ画面 -->
+  <div id="mapScreen" class="screen">
+    <header>
+      <h1>花火大会マップ</h1>
+      <div class="sub">ピンをタップ → 大会名・日付を表示 →［ARで見る］</div>
+    </header>
+    <div id="map"></div>
+    <div class="bottombar">
+      <button id="toList">← リストへ戻る</button>
     </div>
   </div>
 
   <!-- 日本語の許可ダイアログ -->
   <div id="permModal">
-    <div class="card">
+    <div class="card2">
       <h2>センサーの使用を許可してください</h2>
       <p>花火を実際の方角・高さで重ねて表示するために、次を使用します：</p>
       <p>
@@ -105,14 +147,14 @@
     <div><b id="hudTitle">隅田川花火大会</b>｜あなたの位置からの見え方</div>
     <div id="venues"></div>
     <div id="status"></div>
-    <div id="switchRow">大会切替: <select id="festivalSwitch"></select></div>
   </div>
+  <button id="backToList">≡ 一覧</button>
   <!-- 方位表示（今向いている方角／花火の方角） -->
   <div id="facing">🧭 方位センサー未取得</div>
 
   <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z / AR=透過背景） -->
   <a-scene renderer="colorManagement: true; antialias: true; alpha: true"
-           vr-mode-ui="enabled: false">
+           vr-mode-ui="enabled: false" aspect-lock>
     <!-- 視点：原点・目線高さ1.6m。gyro-look が端末の傾きでカメラ姿勢を決める（スワイプ操作なし） -->
     <a-entity id="rig" position="0 1.6 0">
       <a-entity camera="far: 20000; fov: 70" gyro-look></a-entity>
@@ -129,6 +171,7 @@
   <script src="js/geo.js"></script>
   <script src="js/fireworks.js"></script>
   <script src="js/gyro-look.js"></script>
+  <script src="js/aspect-lock.js"></script>
   <script src="js/north-align.js"></script>
   <script src="js/guide.js"></script>
   <script src="js/app.js"></script>

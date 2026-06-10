@@ -1,58 +1,160 @@
-/* global THREE, Geo, FESTIVALS */
+/* global THREE, Geo, FESTIVALS, L */
 /*
- * アプリ制御:
- *  - 起動時に日本語の許可ダイアログ(#permModal)で、カメラ・モーション/方位・GPSの
- *    使用を説明して許可を得る
- *  - 大会の選択（起動オーバーレイ＋実行中HUDの両方で切替可能）
- *  - 現在地→選択大会の各会場の距離・方位・仰角を計算し、ワールドに配置
- *  - hanabi-show 開始/切替 / north-align のコンパス整合 / gyro-look の見回し / HUD更新
- *  - 操作はジャイロのみ（スワイプ操作・手動較正は廃止）
+ * アプリ制御（画面遷移：リスト → マップ → AR）
+ *
+ *  - リスト画面: 大会を日付順／距離順で並べ替え。各カードの［ARで見る］でAR起動。
+ *                ［マップを見る］でマップ画面へ。
+ *  - マップ画面: 地図上にピン配置。ピンタップで大会名・日付のポップアップ→［ARで見る］。
+ *  - AR画面    : 許可ダイアログ→カメラ/GPS/センサー→選択大会を実方位で表示。
+ *                ［≡ 一覧］でリストへ戻る。
+ *  - 操作はジャイロのみ。
  */
 (function () {
-  // GPS取得不可時のフォールバック視点（東京駅付近）
-  const FALLBACK_VIEW = { lat: 35.6812, lng: 139.7671, label: '推定視点（東京駅付近）' };
+  // 距離計算・地図初期表示用のフォールバック視点（東京駅付近）
+  const FALLBACK_VIEW = { lat: 35.6812, lng: 139.7671, label: '東京駅付近' };
 
   const $ = (id) => document.getElementById(id);
-  const fmtDist = (m) => (m >= 1000 ? (m / 1000).toFixed(2) + ' km' : Math.round(m) + ' m');
+  const fmtDist = (m) => (m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m');
   const compass8 = (deg) => {
     const full = ['北', '北東', '東', '南東', '南', '南西', '西', '北西'];
     return full[Math.round(deg / 45) % 8] + `(${Math.round(deg)}°)`;
   };
 
-  let viewer = null;
+  let viewer = null;          // 距離計算の基準（GPSがあれば実値、なければフォールバック）
+  let gpsViewer = null;       // AR用に取得した実GPS
   let primaryBearing = 0;
+  let pendingIndex = 0;       // 許可ダイアログ通過後にARで表示する大会
   let currentIndex = 0;
   let sensorsAllowed = false;
+  let sortMode = 'date';
+  let map = null;
+  let markers = [];
 
   function init() {
-    [$('festivalSelect'), $('festivalSwitch')].forEach((sel) => {
-      if (!sel) return;
-      sel.innerHTML = FESTIVALS.map((f, i) => `<option value="${i}">${f.name}</option>`).join('');
-    });
-    $('festivalSelect').addEventListener('change', (e) => updateOverlaySubtitle(+e.target.value));
-    $('festivalSwitch').addEventListener('change', (e) => selectFestival(+e.target.value));
-    $('startBtn').addEventListener('click', openPermModal, { once: true });
+    // リストのソート切替
+    $('sortDate').addEventListener('click', () => setSort('date'));
+    $('sortDist').addEventListener('click', () => setSort('dist'));
+    // 画面遷移
+    $('toMap').addEventListener('click', showMap);
+    $('toList').addEventListener('click', showList);
+    $('backToList').addEventListener('click', backToList);
+    // 許可ダイアログ
     $('permAllow').addEventListener('click', () => startApp(true));
     $('permDeny').addEventListener('click', () => startApp(false));
-    updateOverlaySubtitle(0);
+
+    // 距離順のために現在地を控えめに取得（拒否でもフォールバックで動く）
+    viewer = { lat: FALLBACK_VIEW.lat, lng: FALLBACK_VIEW.lng };
+    Geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 })
+      .then((p) => { viewer = { lat: p.lat, lng: p.lng }; gpsViewer = p; renderList(); })
+      .catch(() => {});
+
+    renderList();
   }
 
-  function updateOverlaySubtitle(i) {
-    $('subtitle').textContent = FESTIVALS[i].subtitle;
+  // ---- リスト画面 ----
+  function setSort(mode) {
+    sortMode = mode;
+    $('sortDate').classList.toggle('active', mode === 'date');
+    $('sortDist').classList.toggle('active', mode === 'dist');
+    renderList();
   }
 
-  // 日本語の許可説明ダイアログを表示
-  function openPermModal() {
-    currentIndex = +$('festivalSelect').value || 0;
+  // 大会に距離(最寄り会場)を付与
+  function withDistance(f) {
+    let best = Infinity;
+    f.venues.forEach((v) => {
+      const d = Geo.haversine(viewer.lat, viewer.lng, v.lat, v.lng);
+      if (d < best) best = d;
+    });
+    return best;
+  }
+
+  function sortedFestivals() {
+    const arr = FESTIVALS.map((f, i) => ({ f, i, dist: withDistance(f) }));
+    if (sortMode === 'dist') {
+      arr.sort((a, b) => a.dist - b.dist);
+    } else {
+      // 日付順（null=毎晩 は末尾）
+      arr.sort((a, b) => {
+        if (!a.f.date && !b.f.date) return 0;
+        if (!a.f.date) return 1;
+        if (!b.f.date) return -1;
+        return a.f.date < b.f.date ? -1 : a.f.date > b.f.date ? 1 : 0;
+      });
+    }
+    return arr;
+  }
+
+  function renderList() {
+    const html = sortedFestivals().map(({ f, i, dist }) => `
+      <div class="card">
+        <div class="meta">
+          <div class="nm">${f.name}</div>
+          <div class="dt">📅 ${f.dateLabel}　📍 ${fmtDist(dist)}</div>
+          <div class="ds">${f.subtitle}</div>
+        </div>
+        <button class="go" data-i="${i}">ARで見る</button>
+      </div>`).join('');
+    $('listScroll').innerHTML = html;
+    $('listScroll').querySelectorAll('.go').forEach((b) => {
+      b.addEventListener('click', () => openPermModal(+b.dataset.i));
+    });
+  }
+
+  // ---- マップ画面 ----
+  function showMap() {
+    $('listScreen').classList.remove('show');
+    $('mapScreen').classList.add('show');
+    setTimeout(initMap, 50); // 表示後にサイズ確定
+  }
+  function showList() {
+    $('mapScreen').classList.remove('show');
+    $('listScreen').classList.add('show');
+  }
+
+  function initMap() {
+    if (map) { map.invalidateSize(); return; }
+    map = L.map('map', { zoomControl: true }).setView([viewer.lat, viewer.lng], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+
+    // 現在地マーカー
+    L.circleMarker([viewer.lat, viewer.lng], {
+      radius: 7, color: '#7fe7ff', fillColor: '#7fe7ff', fillOpacity: .9,
+    }).addTo(map).bindPopup('現在地');
+
+    // 各大会のピン（先頭会場の位置）
+    const bounds = [[viewer.lat, viewer.lng]];
+    FESTIVALS.forEach((f, i) => {
+      const v = f.venues[0];
+      const m = L.marker([v.lat, v.lng]).addTo(map);
+      const html = `<div class="pop"><div class="nm">${f.name}</div>` +
+        `<div class="dt">📅 ${f.dateLabel}</div>` +
+        `<button class="go" data-i="${i}">ARで見る</button></div>`;
+      m.bindPopup(html);
+      m.on('popupopen', (e) => {
+        const btn = e.popup.getElement().querySelector('.go');
+        if (btn) btn.addEventListener('click', () => openPermModal(+btn.dataset.i));
+      });
+      markers.push(m);
+      bounds.push([v.lat, v.lng]);
+    });
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }
+
+  // ---- AR起動 ----
+  function openPermModal(index) {
+    pendingIndex = index;
     $('permModal').classList.add('show');
   }
 
-  // 許可結果を受けて起動。allow=false なら最小限（GPSのみ）で起動。
   async function startApp(allow) {
     $('permModal').classList.remove('show');
+    $('listScreen').classList.remove('show');
+    $('mapScreen').classList.remove('show');
     document.body.classList.add('running');
 
-    // 音声（ユーザー操作中に初期化）
     if (window.HanabiAudio) window.HanabiAudio.init();
 
     if (allow) {
@@ -61,27 +163,21 @@
       sensorsAllowed = true;
     }
 
-    // 現在地（GPS）
+    // AR用に高精度GPSを取得（取れなければリストで控えた値→フォールバック）
     try {
-      viewer = await Geo.getCurrentPosition();
-      setStatus(`現在地を取得しました（精度±${Math.round(viewer.accuracy)}m）`);
+      const p = await Geo.getCurrentPosition();
+      gpsViewer = p; viewer = { lat: p.lat, lng: p.lng };
+      setStatus(`現在地を取得しました（精度±${Math.round(p.accuracy)}m）`);
     } catch (e) {
-      viewer = { lat: FALLBACK_VIEW.lat, lng: FALLBACK_VIEW.lng };
-      setStatus(`GPSを取得できないため${FALLBACK_VIEW.label}から表示します。`, true);
+      if (!gpsViewer) viewer = { lat: FALLBACK_VIEW.lat, lng: FALLBACK_VIEW.lng };
+      setStatus(`GPSを取得できないため${gpsViewer ? '前回値' : FALLBACK_VIEW.label}で表示します。`, true);
     }
 
-    selectFestival(currentIndex);
-
-    // 表示開始直後にレンダラ/カメラのアスペクト比を実画面へ同期（横潰れ防止）
-    fixAspect();
-    window.addEventListener('resize', fixAspect);
-    window.addEventListener('orientationchange', () => setTimeout(fixAspect, 300));
-    // iOSのアドレスバー開閉などで遅れて確定するサイズにも追従
-    [120, 400, 1000].forEach((t) => setTimeout(fixAspect, t));
+    selectFestival(pendingIndex);
 
     if (sensorsAllowed) {
-      $('world').components['north-align'].enableCompass();   // 方角合わせ
-      document.querySelector('[camera]').components['gyro-look'].enable(); // ジャイロ見回し
+      $('world').components['north-align'].enableCompass();
+      document.querySelector('[camera]').components['gyro-look'].enable();
     } else {
       setStatus('センサー未許可のため、見回し・方角合わせは無効です。', true);
     }
@@ -89,18 +185,13 @@
     startFacingLoop();
   }
 
-  // レンダラとカメラのアスペクト比を実ビューポートに合わせる（花火の横潰れを防ぐ）
-  function fixAspect() {
-    const scene = document.querySelector('a-scene');
-    if (!scene) return;
-    const w = window.innerWidth, h = window.innerHeight;
-    const cam = scene.camera;
-    if (cam && cam.isPerspectiveCamera) {
-      cam.aspect = w / h;
-      cam.updateProjectionMatrix();
-    }
-    if (scene.renderer) scene.renderer.setSize(w, h);
-    if (typeof scene.resize === 'function') scene.resize();
+  function backToList() {
+    document.body.classList.remove('running');
+    // 花火ショーを止める
+    const hs = $('world').components['hanabi-show'];
+    if (hs) { hs.running = false; hs.clear(); }
+    $('listScreen').classList.add('show');
+    renderList();
   }
 
   async function startCamera() {
@@ -156,7 +247,6 @@
 
     $('hudTitle').textContent = fest.name;
     $('venues').innerHTML = rows.join('');
-    if ($('festivalSwitch').value !== String(index)) $('festivalSwitch').value = String(index);
 
     $('world').components['hanabi-show'].setVenues(worldVenues, fest.finaleMix);
     $('world').components['direction-guide'].set({
@@ -166,18 +256,14 @@
     });
   }
 
-  // 方位表示（今向いている方角／花火の方角）を定期更新
   function startFacingLoop() {
+    if (startFacingLoop._t) return;
     const el = $('facing');
-    setInterval(() => {
+    startFacingLoop._t = setInterval(() => {
       const na = $('world').components['north-align'];
       const h = na ? na.heading : null;
       const fire = `花火 ${compass8(primaryBearing)}`;
-      if (h == null) {
-        el.textContent = `🧭 方位センサー未取得 ｜ ${fire}`;
-      } else {
-        el.textContent = `🧭 向き ${compass8(h)} ｜ ${fire}`;
-      }
+      el.textContent = (h == null) ? `🧭 方位センサー未取得 ｜ ${fire}` : `🧭 向き ${compass8(h)} ｜ ${fire}`;
     }, 200);
   }
 
