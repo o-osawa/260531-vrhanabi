@@ -1,4 +1,4 @@
-/* global THREE, Geo, FESTIVALS, L */
+/* global THREE, Geo, FESTIVALS, REGIONS, L */
 /*
  * アプリ制御（画面遷移：リスト → マップ → AR）
  *
@@ -27,10 +27,16 @@
   let currentIndex = 0;
   let sensorsAllowed = false;
   let sortMode = 'date';
+  let regionId = (REGIONS[0] && REGIONS[0].id) || 'kanto';
   let map = null;
   let markers = [];
 
   function init() {
+    // 地域セレクト
+    const rsel = $('regionSel');
+    rsel.innerHTML = REGIONS.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
+    rsel.value = regionId;
+    rsel.addEventListener('change', (e) => { regionId = e.target.value; renderList(); rebuildMap(); });
     // リストのソート切替
     $('sortDate').addEventListener('click', () => setSort('date'));
     $('sortDist').addEventListener('click', () => setSort('dist'));
@@ -70,7 +76,9 @@
   }
 
   function sortedFestivals() {
-    const arr = FESTIVALS.map((f, i) => ({ f, i, dist: withDistance(f) }));
+    const arr = FESTIVALS
+      .map((f, i) => ({ f, i, dist: withDistance(f) }))
+      .filter((x) => x.f.region === regionId);
     if (sortMode === 'dist') {
       arr.sort((a, b) => a.dist - b.dist);
     } else {
@@ -90,7 +98,7 @@
       <div class="card">
         <div class="meta">
           <div class="nm">${f.name}</div>
-          <div class="dt">📅 ${f.dateLabel}　📍 ${fmtDist(dist)}</div>
+          <div class="dt">📅 ${f.dateLabel}　📍 ${f.pref}・${fmtDist(dist)}</div>
           <div class="ds">${f.subtitle}</div>
         </div>
         <button class="go" data-i="${i}">ARで見る</button>
@@ -124,13 +132,21 @@
       radius: 7, color: '#7fe7ff', fillColor: '#7fe7ff', fillOpacity: .9,
     }).addTo(map).bindPopup('現在地');
 
-    // 各大会のピン（先頭会場の位置）
+    placeMarkers();
+  }
+
+  // 選択地域の大会ピンを配置（地域切替・再表示で作り直す）
+  function placeMarkers() {
+    if (!map) return;
+    markers.forEach((m) => map.removeLayer(m));
+    markers = [];
     const bounds = [[viewer.lat, viewer.lng]];
     FESTIVALS.forEach((f, i) => {
+      if (f.region !== regionId) return;
       const v = f.venues[0];
       const m = L.marker([v.lat, v.lng]).addTo(map);
       const html = `<div class="pop"><div class="nm">${f.name}</div>` +
-        `<div class="dt">📅 ${f.dateLabel}</div>` +
+        `<div class="dt">📅 ${f.dateLabel}　📍 ${f.pref}</div>` +
         `<button class="go" data-i="${i}">ARで見る</button></div>`;
       m.bindPopup(html);
       m.on('popupopen', (e) => {
@@ -140,7 +156,11 @@
       markers.push(m);
       bounds.push([v.lat, v.lng]);
     });
-    map.fitBounds(bounds, { padding: [40, 40] });
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40] });
+  }
+
+  function rebuildMap() {
+    if (map) placeMarkers();
   }
 
   // ---- AR起動 ----
