@@ -82,13 +82,14 @@
     if (sortMode === 'dist') {
       arr.sort((a, b) => a.dist - b.dist);
     } else {
-      // 日付順（null=毎晩 は末尾）
-      arr.sort((a, b) => {
-        if (!a.f.date && !b.f.date) return 0;
-        if (!a.f.date) return 1;
-        if (!b.f.date) return -1;
-        return a.f.date < b.f.date ? -1 : a.f.date > b.f.date ? 1 : 0;
-      });
+      // 日付順は「季節順（月日）」で並べる。データは年が混在(2025/2026)するため
+      // 年を無視し MMDD で比較する。日付なし(毎晩等)は末尾。
+      const md = (f) => {
+        if (!f.date) return Infinity;
+        const m = /^\d{4}-(\d{2})-(\d{2})/.exec(f.date);
+        return m ? parseInt(m[1] + m[2], 10) : Infinity;
+      };
+      arr.sort((a, b) => md(a.f) - md(b.f));
     }
     return arr;
   }
