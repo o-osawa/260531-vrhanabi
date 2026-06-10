@@ -59,6 +59,22 @@ const FESTIVALS = [
     finaleMix: [10, 10, 20],
   },
   {
+    id: 'koto', region: 'kanto', pref: '東京都', name: '江東花火大会',
+    subtitle: '荒川・砂町水辺公園／至近150mで約6千発', date: '2026-08-11', dateLabel: '8月11日',
+    venues: [
+      { id: 'v1', name: '荒川・砂町水辺公園（葛西橋〜清砂大橋）', lat: 35.66950, lng: 139.84550, shellMix: [3, 4, 5, 5, 10] },
+    ],
+    finaleMix: [5, 10, 10],
+  },
+  {
+    id: 'kameido', region: 'kanto', pref: '東京都', kind: 'event', name: '亀戸地区夏まつり 花火',
+    subtitle: '亀戸中央公園周辺の納涼花火（夏季の指定日）', date: null, dateLabel: '夏季の指定日',
+    venues: [
+      { id: 'v1', name: '亀戸中央公園周辺', lat: 35.70250, lng: 139.82650, shellMix: [2, 3, 3, 4] },
+    ],
+    finaleMix: [3, 4, 5],
+  },
+  {
     id: 'adachi', region: 'kanto', pref: '東京都', name: '足立の花火',
     subtitle: '約1.4万発・高密度（近年は5月開催）', date: '2025-05-31', dateLabel: '5月31日 ※2025',
     venues: [
