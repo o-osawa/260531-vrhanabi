@@ -92,6 +92,18 @@
     #permModal button { flex: 1; font-size: 15px; padding: 13px 10px; border-radius: 12px; border: none; font-weight: 700; }
     #permDeny { background: #ffffff1a; color: #fff; border: 1px solid #ffffff33; }
     #permAllow { background: linear-gradient(135deg, #ff5b7b, #ffae3b); color: #1a0a10; }
+    .warnbox { background: #ffd24a1f; border: 1px solid #ffd24a55; border-radius: 10px;
+      padding: 10px 12px; font-size: 12.5px; color: #ffe6ad; }
+
+    /* 純正ダイアログ直前の案内バナー */
+    #permBanner { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); z-index: 30;
+      display: none; width: min(92vw, 380px); text-align: center; padding: 16px 18px; border-radius: 16px;
+      background: rgba(10,14,28,.95); border: 1px solid #ffae5b66; box-shadow: 0 10px 40px #000c; }
+    #permBanner.show { display: block; animation: pbpulse 1.4s ease-in-out infinite; }
+    #permBanner .pb-title { font-size: 14px; opacity: .9; }
+    #permBanner .pb-body { font-size: 20px; font-weight: 700; margin: 8px 0; color: #ffd24a; }
+    #permBanner .pb-hint { font-size: 12px; opacity: .75; }
+    @keyframes pbpulse { 0%,100% { box-shadow: 0 10px 40px #000c; } 50% { box-shadow: 0 0 22px #ffae5b88; } }
   </style>
 </head>
 <body>
@@ -135,18 +147,31 @@
   <div id="permModal">
     <div class="card2">
       <h2>センサーの使用を許可してください</h2>
+      <p id="inappWarn" class="warnbox" style="display:none">
+        ⚠️ いまアプリ内ブラウザで開いています。許可の確認が<b>白い空欄</b>で出たり、カメラが使えない
+        ことがあります。右上「…」から <b>Safari / Chrome で開く</b> と確実です。
+      </p>
       <p>花火を実際の方角・高さで重ねて表示するために、次を使用します：</p>
       <p>
         ・<b>カメラ</b>… 背景の実写映像（AR）<br>
         ・<b>モーション／方位センサー</b>… 傾きで見回し・方角合わせ（ジャイロ・コンパス）<br>
         ・<b>位置情報(GPS)</b>… 打ち上げ場所までの距離・方角の計算
       </p>
-      <p class="note">「許可する」を押すと、続けて端末の確認（カメラ・モーションと画面の向き・位置情報）が表示されます。許可しない場合でも表示はできますが、見回しと方角合わせは無効になります。</p>
+      <p class="note">「許可する」を押すと、続けて端末の確認が<b>順番に</b>表示されます。各確認では
+        <b>「Allow（許可）」</b>を押してください（ボタンが空欄でも、右側が許可です）。許可しない場合でも
+        表示はできますが、見回しと方角合わせは無効になります。</p>
       <div class="btns">
         <button id="permDeny">許可しない</button>
         <button id="permAllow">許可する</button>
       </div>
     </div>
+  </div>
+
+  <!-- 純正ダイアログ直前に出す案内バナー（白い空欄ダイアログ対策） -->
+  <div id="permBanner">
+    <div class="pb-title">次の確認に <b>「Allow（許可）」</b> を押してください</div>
+    <div class="pb-body" id="permBannerBody">カメラの使用許可</div>
+    <div class="pb-hint">※ ボタンが白く空欄でも、<b>右側</b>が「許可」です</div>
   </div>
 
   <!-- 実行中HUD -->
