@@ -187,9 +187,13 @@
   <!-- 方位表示（今向いている方角／花火の方角） -->
   <div id="facing">🧭 方位センサー未取得</div>
 
-  <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z / AR=透過背景） -->
+  <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z / AR=透過背景）
+       device-orientation-permission-ui を無効化：A-Frameが独自に出す
+       「Allow/Deny」の白い許可オーバーレイ（アプリ内では空白表示）を抑止する。
+       センサー許可は自前の日本語モーダル＋標準APIで取得するため不要。 -->
   <a-scene renderer="colorManagement: true; antialias: true; alpha: true"
-           vr-mode-ui="enabled: false" aspect-lock>
+           vr-mode-ui="enabled: false"
+           device-orientation-permission-ui="enabled: false" aspect-lock>
     <!-- 視点：原点・目線高さ1.6m。gyro-look が端末の傾きでカメラ姿勢を決める（スワイプ操作なし） -->
     <a-entity id="rig" position="0 1.6 0">
       <a-entity camera="far: 20000; fov: 70" gyro-look></a-entity>
