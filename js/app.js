@@ -205,17 +205,18 @@
     if (window.HanabiAudio) window.HanabiAudio.init();
 
     if (allow) {
-      // 各純正ダイアログの直前に日本語バナーを出す（白い空欄でも何の許可か分かる）
-      showPermBanner('① カメラの使用許可');
+      // 各純正ダイアログの直前に日本語バナーを出す（白い空欄でも何の許可か分かる）。
+      // バナーは表示させたまま await し、押し終わってから次の案内に切り替える。
+      showPermBanner('①カメラ の使用許可');
       await startCamera();
-      showPermBanner('② モーションと画面の向きの許可');
+      showPermBanner('②動き・向き（モーション）の許可');
       await requestOrientationPermission();
       sensorsAllowed = true;
     }
 
     // AR用に高精度GPSを取得（取れなければリストで控えた値→フォールバック）
     try {
-      showPermBanner('③ 位置情報（GPS）の使用許可');
+      showPermBanner('③位置情報（GPS）の使用許可');
       const p = await Geo.getCurrentPosition();
       gpsViewer = p; viewer = { lat: p.lat, lng: p.lng };
       setStatus(`現在地を取得しました（精度±${Math.round(p.accuracy)}m）`);
