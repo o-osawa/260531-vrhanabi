@@ -78,6 +78,11 @@
       padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 700;
       background: rgba(0,0,0,.5); border: 1px solid #ffffff33; white-space: nowrap; }
     body.running #facing { display: block; }
+    #recalBtn { position: fixed; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 9;
+      display: none; pointer-events: auto; font-size: 13px; font-weight: 700; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid #ffffff44; background: #ffffff1a; color: #fff;
+      backdrop-filter: blur(6px); white-space: nowrap; }
+    body.running #recalBtn { display: block; }
 
     /* 日本語の許可ダイアログ */
     #permModal { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
@@ -186,6 +191,8 @@
   <button id="backToList">≡ 一覧</button>
   <!-- 方位表示（今向いている方角／花火の方角） -->
   <div id="facing">🧭 方位センサー未取得</div>
+  <!-- 方位が狂ったとき、その場で北合わせをやり直す -->
+  <button id="recalBtn">🧭 方位を再取得</button>
 
   <!-- A-Frame シーン（実スケール 1unit=1m / 北=-Z / AR=透過背景）
        device-orientation-permission-ui を無効化：A-Frameが独自に出す
@@ -202,7 +209,7 @@
     <!-- AR: 背景は端末カメラ映像（透過キャンバス）。地面/空は置かず実景を活かす。 -->
 
     <!-- 花火ワールド：北整合＋花火ショー＋方向ガイド。会場はこの中に実方位で配置される -->
-    <a-entity id="world" north-align hanabi-show direction-guide></a-entity>
+    <a-entity id="world" north-align hanabi-show direction-guide compass-marks></a-entity>
   </a-scene>
 
   <script src="js/festival-data.js"></script>
