@@ -44,6 +44,7 @@
     $('toMap').addEventListener('click', showMap);
     $('toList').addEventListener('click', showList);
     $('backToList').addEventListener('click', backToList);
+    $('recalBtn').addEventListener('click', recalibrateCompass);
     // 許可ダイアログ
     $('permAllow').addEventListener('click', () => startApp(true));
     $('permDeny').addEventListener('click', () => startApp(false));
@@ -240,6 +241,20 @@
     }
 
     startFacingLoop();
+  }
+
+  // 方位を再取得（北合わせをやり直す）。センサー再許可も試みる。
+  async function recalibrateCompass() {
+    if (!sensorsAllowed) { await requestOrientationPermission(); sensorsAllowed = true; }
+    const na = $('world').components['north-align'];
+    if (na) {
+      na.enableCompass();       // 念のためリスナ再登録（重複登録は無害）
+      na.recalibrate();         // 現在のコンパス値で北を再確定
+    }
+    // gyro-look も有効化されていなければ有効化
+    const gl = document.querySelector('[camera]').components['gyro-look'];
+    if (gl) gl.enable();
+    setStatus('方位を再取得しました（スマホを水平に一度ぐるっと回すと精度が上がります）。');
   }
 
   function backToList() {

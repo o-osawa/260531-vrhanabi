@@ -53,6 +53,13 @@ AFRAME.registerComponent('north-align', {
     return this._euler.y;
   },
 
+  // 北合わせをやり直す（方位がズレたとき用）。現在のコンパス値で再確定する。
+  // offset は再確定まで維持し、見た目のジャンプを防ぐ。
+  recalibrate() {
+    this.autoPending = true;
+    this._frames = 0;
+  },
+
   tick() {
     // 初回：方位取得後、カメラ姿勢が反映されるのを数フレーム待って一度だけ確定
     if (this.autoPending && this.heading !== null) {
