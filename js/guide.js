@@ -126,3 +126,52 @@ AFRAME.registerComponent('direction-guide', {
     this.markers.forEach((m) => m.quaternion.copy(local));
   },
 });
+
+/*
+ * 東西南北マーク（compass-marks コンポーネント / #world に付与）
+ *
+ * 地平線の高さ（視点と同じ目線＝仰角0°付近）に、北・東・南・西の目印を置く。
+ * #world 内に配置するので真北整合・方位再取得に連動する。常にカメラへ正対。
+ */
+AFRAME.registerComponent('compass-marks', {
+  init() {
+    this.group = new THREE.Group();
+    this.el.object3D.add(this.group);
+    this.marks = [];
+    this._cq = new THREE.Quaternion();
+    this._pq = new THREE.Quaternion();
+    const R = 200;          // 目印までの距離[m]
+    const Y = 1.6;          // 目線の高さ＝地平線
+    // 北は方位磁石の慣例で赤系、他は淡色
+    const dirs = [
+      { deg: 0,   text: '北', color: '#ff6b6b' },
+      { deg: 90,  text: '東', color: '#ffe08a' },
+      { deg: 180, text: '南', color: '#9fdcff' },
+      { deg: 270, text: '西', color: '#c7ffb0' },
+    ];
+    dirs.forEach((d) => {
+      const tex = makeTextTexture([{ text: d.text, size: 128, color: d.color }], { bg: 'rgba(0,0,0,0.35)' });
+      const w = 34, h = w / tex.aspect;
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex.tex, transparent: true, side: THREE.DoubleSide, depthTest: false, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = 998;
+      const B = THREE.MathUtils.degToRad(d.deg);
+      mesh.position.set(R * Math.sin(B), Y, -R * Math.cos(B));
+      this.group.add(mesh);
+      this.marks.push(mesh);
+    });
+  },
+
+  tick() {
+    const cam = this.el.sceneEl.camera;
+    if (!cam || !this.marks.length) return;
+    cam.getWorldQuaternion(this._cq);
+    this.group.getWorldQuaternion(this._pq);
+    this._pq.invert();
+    const local = this._pq.multiply(this._cq);
+    this.marks.forEach((m) => m.quaternion.copy(local));
+  },
+});
