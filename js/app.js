@@ -202,16 +202,20 @@
     $('mapScreen').classList.remove('show');
     document.body.classList.add('running');
 
-    if (window.HanabiAudio) window.HanabiAudio.init();
-
     if (allow) {
-      // 各純正ダイアログの直前に日本語バナーを出す（白い空欄でも何の許可か分かる）。
-      // バナーは表示させたまま await し、押し終わってから次の案内に切り替える。
-      showPermBanner('①カメラ の使用許可');
+      // 重要: iOSの DeviceOrientation 許可と AudioContext resume は「ユーザー操作の
+      // 直後（await前）」に呼ぶ必要がある。getUserMedia を先に await するとジェスチャが
+      // 切れて許可要求が無効化される。そのため許可要求と音声初期化を await 前に発火し、
+      // カメラは後で await する。
+      showPermBanner('①動き・向き（モーション）の許可');
+      const orientP = requestOrientationPermission(); // ここで OS へ許可要求（同期発火）
+      if (window.HanabiAudio) window.HanabiAudio.init();
+      await orientP;
+      showPermBanner('②カメラ の使用許可');
       await startCamera();
-      showPermBanner('②動き・向き（モーション）の許可');
-      await requestOrientationPermission();
       sensorsAllowed = true;
+    } else if (window.HanabiAudio) {
+      window.HanabiAudio.init();
     }
 
     // AR用に高精度GPSを取得（取れなければリストで控えた値→フォールバック）
